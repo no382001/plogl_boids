@@ -23,37 +23,53 @@ calculate_separation_vector(BoidID, (TotalDX, TotalDY, TotalDZ)) :-
 
 
 % returns an average velvector in alignment distance radius
-calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
+calculate_alignment_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :- 
     alignment_distance(ADistance),
+    boid_cell(BoidID,CellID),
+    boid(BoidID,(PX, PY, PZ),_),
     findall(
         (VX,VY,VZ),
         (
-            member(cone(p(OPX,OPY,OPZ),t(VX,VY,VZ)), OtherBoids),
+            boid_cell(M,CellID), % for all boids in cell
+            M = boid(_,(OPX,OPY,OPZ),_),
             distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
             Distance < ADistance % if too close
         ),
         VectorsInRange
     ),
     length(VectorsInRange,N),
-    foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
-    TotalDX = DX / N,
-    TotalDY = DY / N,
-    TotalDZ = DZ / N.
+    (   N > 0
+    ->  foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX, DY, DZ)),
+        TotalDX is DX / N,
+        TotalDY is DY / N,
+        TotalDZ is DZ / N
+    ;   TotalDX = 0,
+        TotalDY = 0,
+        TotalDZ = 0
+    ).
 
 % += (xpos_avg - boid.x)*centeringfactor
-calculate_cohesion_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
+calculate_cohesion_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :- 
     alignment_distance(ADistance),
+    boid_cell(BoidID,CellID),
+    boid(BoidID,(PX, PY, PZ),_),
     findall(
         (OPX, OPY, OPZ),
         (
-            member(cone(p(OPX,OPY,OPZ),_), OtherBoids),
+            boid_cell(M,CellID), % for all boids in cell
+            M = boid(_,(OPX,OPY,OPZ),_),
             distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
             Distance < ADistance % if too close
         ),
         VectorsInRange
     ),
     length(VectorsInRange,N),
-    foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
-    TotalDX = DX / N,
-    TotalDY = DY / N,
-    TotalDZ = DZ / N.
+    (   N > 0
+    ->  foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX, DY, DZ)),
+        TotalDX is DX / N,
+        TotalDY is DY / N,
+        TotalDZ is DZ / N
+    ;   TotalDX = 0,
+        TotalDY = 0,
+        TotalDZ = 0
+    ).

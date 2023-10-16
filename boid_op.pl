@@ -14,21 +14,17 @@ move_with_vector(BoidID) :-
     %format("~w\n",[BoidID]),
     
     boid(BoidID,(X,Y,Z),(TX,TY,TZ)),
-    %calculate_separation_vector(BoidID,(SX, SY, SZ)),
-    %calculate_alignment_vector(BoidID,(AX, AY, AZ)),
-    %calculate_cohesion_vector(BoidID,(CX, CY, CZ)),
+    calculate_separation_vector(BoidID,(SX, SY, SZ)),
+    calculate_alignment_vector(BoidID,(AX, AY, AZ)),
+    calculate_cohesion_vector(BoidID,(CX, CY, CZ)),
 
     avoidfactor(AF),
     matchingfactor(MF),
     centeringfactor(CF),
     % calculate new position
-    %NX is (AX - X) * MF + X + TX + (SX * AF) + (CX - X) * CF,
-    %NY is (AY - Y) * MF + Y + TY + (SY * AF) + (CY - Y) * CF,
-    %NZ is (AZ - Z) * MF + Z + TZ + (SZ * AF) + (CZ - Z) * CF,
-
-    NX is X + TX,
-    NY is Y + TY,
-    NZ is Z + TZ,
+    NX is (AX - X) * MF + X + TX + (SX * AF) + (CX - X) * CF,
+    NY is (AY - Y) * MF + Y + TY + (SY * AF) + (CY - Y) * CF,
+    NZ is (AZ - Z) * MF + Z + TZ + (SZ * AF) + (CZ - Z) * CF,
 
     map_size(S),
     HalfS is S / 2,

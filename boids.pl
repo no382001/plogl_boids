@@ -23,11 +23,11 @@ no_boids(20).
 
 % boid behav
 separation_distance(0.05).
-avoidfactor(1.0).
+avoidfactor(0.0005).
 alignment_distance(0.0005).
 matchingfactor(0.0005).
 cohesion_distance(0.05).
-centeringfactor(1.0).
+centeringfactor(0.00005).
 
 % dynamic defs
 :- dynamic camera_rotation/1,cone_velocity/1,cones/1.
@@ -37,14 +37,14 @@ cones([]).
 
 % the camera is angled at the main cube
 camera :-
-	camera_rotation(Angle),
-    NewAngle is Angle + 0.001,
-    (NewAngle >= 6.28318 % 2PI
-        -> CAngle is 0.0
-        ; CAngle is NewAngle
-    ),
-    retract(camera_rotation(_)),
-    assert(camera_rotation(CAngle)),
+	camera_rotation(CAngle),
+    %NewAngle is Angle + 0.001,
+    %(NewAngle >= 6.28318 % 2PI
+    %    -> CAngle is 0.0
+    %    ; CAngle is NewAngle
+    %),
+    %retract(camera_rotation(_)),
+    %assert(camera_rotation(CAngle)),
 
     Radius = 10.0,
     EyeX is cos(CAngle) * Radius,
