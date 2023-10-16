@@ -10,12 +10,15 @@
 :- use_module("plogl/prolog/plGLU").
 :- use_module("plogl/prolog/plGLUT").
 
+:- include("boid_op.pl").
+:- include("boid_calc.pl").
+:- include("sp_partitioning.pl").
+
 % static defs
 width(500).
 height(500). 
 
 % sim defs
-map_size(10.0).
 no_boids(20).
 
 % boid behav
@@ -23,7 +26,6 @@ separation_distance(0.05).
 avoidfactor(1.0).
 alignment_distance(0.0005).
 matchingfactor(0.0005).
-
 cohesion_distance(0.05).
 centeringfactor(1.0).
 
@@ -32,15 +34,6 @@ centeringfactor(1.0).
 camera_rotation(0.0).
 cone_velocity(0.07).
 cones([]).
-
-
-generate_random_boid(cone(p(Px,Py,Pz),t(X,Y,Z))) :-
-    map_size(S),
-    HalfS is S / 2,
-    HalfSm is - HalfS,
-    random(HalfSm, HalfS, Px), random(HalfSm,HalfS, Py), random(HalfSm,HalfS, Pz),
-    random(-0.01, 0.01, X), random(-0.01, 0.01, Y), random(-0.01, 0.01, Z).
-
 
 % the camera is angled at the main cube
 camera :-
@@ -59,7 +52,8 @@ camera :-
 
 	gluLookAt(EyeX,0.0,EyeZ,0.0, 0.0, 0.0, 1.0, 1.0, 0.0).
 
-draw_cone(cone(p(PX,PY,PZ),t(TX,TY,TZ))) :-
+% draw cone looking in the direction it is going
+draw_cone((PX,PY,PZ),(TX,TY,TZ)) :-
     DX is PX + TX,
     DY is PY + TY,
     DZ is PZ + TZ,
@@ -86,14 +80,15 @@ display:-
     map_size(S),
     glutWireCube(S),
     
-    cones(Cones),
-    % update cone's position
-    maplist(move_with_vector,Cones,NCones),
-    % draw all cones
-    forall(member(C,NCones),draw_cone(C)),
-    retract(cones(_)),
-    assertz(cones(NCones)),
-	
+    % update cone's position, and draw
+    forall(
+        boid(I,_,_),
+        move_with_vector(I)),
+    
+    forall(
+        boid(ID,Pos,Vec),
+        draw_cone(Pos,Vec)),
+    
     glFlush,
 	sleep(5),
 	glutSwapBuffers.
@@ -122,6 +117,11 @@ reshape:-
 
 idle :- display.
 
+repeat(_,0) :- !.
+repeat(P,N) :- 
+    P, N1 is N - 1,
+    repeat(P,N1), !.
+
 main:-
     % defs
     width(W),
@@ -129,11 +129,8 @@ main:-
     kGLUT_SINGLE(SINGLE),
     kGLUT_RGB(RGB),
     % generate boids
-    no_boids(NOB),
-    length(List, NOB),
-    maplist(generate_random_boid,List),
-    retract(cones(_)),
-    assertz(cones(List)),
+    setup,
+
     % gl
     glutInit,
     glutInitDisplayMode(SINGLE \/ RGB),
@@ -147,111 +144,12 @@ main:-
     glutKeyboardFunc,
     glutMainLoop.
 
-move_with_vector(Boid,NC) :-
-    Boid = cone(p(X,Y,Z),t(TX, TY, TZ)),
-    cones(OtherBoids),
-    calculate_separation_vector(Boid, OtherBoids, t(SX, SY, SZ)),
-    calculate_alignment_vector(Boid, OtherBoids, t(AX, AY, AZ)),
-    calculate_cohesion_vector(Boid, OtherBoids, t(CX, CY, CZ)),
-
-    avoidfactor(AF),
-    matchingfactor(MF),
-    centeringfactor(CF),
-    % calculate new position
-    NX is (AX - X) * MF + X + TX + (SX * AF) + (CX - X) * CF,
-    NY is (AY - Y) * MF + Y + TY + (SY * AF) + (CY - Y) * CF,
-    NZ is (AZ - Z) * MF + Z + TZ + (SZ * AF) + (CZ - Z) * CF,
-
-    map_size(S),
-    HalfS is S / 2,
-
-    % check if the new position is beyond half the map size and adjust vectors
-    adjust_vector_based_on_position(NX, HalfS, AdjustedNX, TX, AdjustedTX),
-    adjust_vector_based_on_position(NY, HalfS, AdjustedNY, TY, AdjustedTY),
-    adjust_vector_based_on_position(NZ, HalfS, AdjustedNZ, TZ, AdjustedTZ),
-
-    NC = cone(p(AdjustedNX,AdjustedNY,AdjustedNZ),t(AdjustedTX, AdjustedTY, AdjustedTZ)).
-
-adjust_vector_based_on_position(Pos, HalfMapSize, AdjustedPos, OriginalTranslation, AdjustedTranslation) :-
-    % adjust position and reverse the translation
-    (   Pos > HalfMapSize
-    ->  AdjustedPos is HalfMapSize,  % keep on the boundary
-        AdjustedTranslation is -OriginalTranslation % reverse direction
-    ;   Pos < -HalfMapSize
-    ->  AdjustedPos is -HalfMapSize,
-        AdjustedTranslation is -OriginalTranslation
-    ;   % default
-        AdjustedPos is Pos,
-        AdjustedTranslation is OriginalTranslation
-    ).
-
 % escape
 keyboard(27,_,_) :-
 	write('Closing Window and Exiting...'),nl,
 	glutDestroyWindow.
 
-
-distance(PX, PY, PZ, OtherPX, OtherPY, OtherPZ, Distance) :-
-    DX is OtherPX - PX,
-    DY is OtherPY - PY,
-    DZ is OtherPZ - PZ,
-    Distance is sqrt(DX*DX + DY*DY + DZ*DZ).
-
-add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ)) :-
-    NewAccDX is AccDX + DX,
-    NewAccDY is AccDY + DY,
-    NewAccDZ is AccDZ + DZ.
-
-% returns a delta vector thats pointing away from all other in separation distance radius
-calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :-
-    separation_distance(SeparationDistance),
-    findall(
-        (DX, DY, DZ),
-        (
-            member(cone(p(OPX,OPY,OPZ),_), OtherBoids),
-            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
-            Distance < SeparationDistance, % if too close
-            DX is PX - OPX,
-            DY is PY - OPY,
-            DZ is PZ - OPZ
-        ),
-        VectorsPointingAway
-    ),
-    % sum of vecctors
-    foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ)).
-
-
-% returns an average velvector in alignment distance radius
-calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
-    alignment_distance(ADistance),
-    findall(
-        (VX,VY,VZ),
-        (
-            member(cone(p(OPX,OPY,OPZ),t(VX,VY,VZ)), OtherBoids),
-            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
-            Distance < ADistance % if too close
-        ),
-        VectorsInRange
-    ),
-    length(VectorsInRange,N),
-    foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
-    TotalDX = DX / N,
-    TotalDY = DY / N,
-    TotalDZ = DZ / N.
-% += (xpos_avg - boid.x)*centeringfactor
-calculate_cohesion_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
-    alignment_distance(ADistance),
-    findall(
-        (OPX, OPY, OPZ),
-        (
-            member(cone(p(OPX,OPY,OPZ),_), OtherBoids),
-            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
-            Distance < ADistance % if too close
-        ),
-        VectorsInRange
-    ),
-    length(VectorsInRange,N),
-    foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
-    TotalDX = DX / N,
-    TotalDY = DY / N,
-    TotalDZ = DZ / N.
+setup :- 
+    initialize_cells,
+    no_boids(NOB),
+    repeat(generate_random_boid,NOB).
