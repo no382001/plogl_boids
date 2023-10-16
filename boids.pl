@@ -10,6 +10,7 @@
 :- use_module("plogl/prolog/plGLU").
 :- use_module("plogl/prolog/plGLUT").
 
+:- include("keyboard.pl").
 :- include("boid_op.pl").
 :- include("boid_calc.pl").
 :- include("sp_partitioning.pl").
@@ -19,7 +20,7 @@ width(500).
 height(500). 
 
 % sim defs
-no_boids(20).
+no_boids(50).
 
 % boid behav
 separation_distance(0.05).
@@ -27,30 +28,26 @@ avoidfactor(0.0005).
 alignment_distance(0.0005).
 matchingfactor(0.0005).
 cohesion_distance(0.05).
-centeringfactor(0.00005).
+centeringfactor(-0.0003).
 
 % dynamic defs
-:- dynamic camera_rotation/1,cone_velocity/1,cones/1.
-camera_rotation(0.0).
+:- dynamic camera_rotation/2,cone_velocity/1,zoom/1.
+camera_rotation(0.0,0.0).
+zoom(0.0).
 cone_velocity(0.07).
-cones([]).
 
 % the camera is angled at the main cube
 camera :-
-	camera_rotation(CAngle),
-    %NewAngle is Angle + 0.001,
-    %(NewAngle >= 6.28318 % 2PI
-    %    -> CAngle is 0.0
-    %    ; CAngle is NewAngle
-    %),
-    %retract(camera_rotation(_)),
-    %assert(camera_rotation(CAngle)),
+	camera_rotation(XAngle,YAngle),
 
     Radius = 10.0,
-    EyeX is cos(CAngle) * Radius,
-    EyeZ is sin(CAngle) * Radius,
+    EyeX is cos(YAngle) * cos(XAngle) * Radius,
+    EyeY is sin(XAngle) * Radius,
+    EyeZ is (sin(YAngle) * cos(XAngle) * Radius),
 
-	gluLookAt(EyeX,0.0,EyeZ,0.0, 0.0, 0.0, 1.0, 1.0, 0.0).
+    zoom(Z),
+    glTranslatef(0.0, 0.0, Z),
+	gluLookAt(EyeX,EyeY,EyeZ,0.0, 0.0, 0.0, 0.0, 1.0, 0.0).
 
 % draw cone looking in the direction it is going
 draw_cone((PX,PY,PZ),(TX,TY,TZ)) :-
@@ -66,6 +63,7 @@ draw_cone((PX,PY,PZ),(TX,TY,TZ)) :-
             0.0, 1.0, 0.0), % up
         glutWireCone(0.5, 1.0, 5, 1),
     glPopMatrix.
+    %debug_draw_cells.
     
 
 display:-
@@ -143,11 +141,6 @@ main:-
     glutReshapeFunc,
     glutKeyboardFunc,
     glutMainLoop.
-
-% escape
-keyboard(27,_,_) :-
-	write('Closing Window and Exiting...'),nl,
-	glutDestroyWindow.
 
 setup :- 
     initialize_cells,

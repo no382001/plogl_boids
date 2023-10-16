@@ -56,6 +56,16 @@ handle_boid_movement(BoidID, NewX, NewY, NewZ) :-
     assign_boid_to_cell(BoidID).
 
 
+debug_draw_cells :-
+    forall(
+        cell(I,X,Y,Z,W,_,_),
+        (
+            glPushMatrix,
+                glTranslatef(X,Y,Z),
+                glutWireCube(W),
+            glPopMatrix    
+        )).
+
 % create/generate boids
 % assign them to cells
 
