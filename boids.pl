@@ -30,6 +30,8 @@ matchingfactor(0.0005).
 cohesion_distance(0.05).
 centeringfactor(-0.0003).
 
+centerattraction(0.0001).
+
 % dynamic defs
 :- dynamic camera_rotation/2,cone_velocity/1,zoom/1.
 camera_rotation(0.0,0.0).

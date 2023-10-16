@@ -42,14 +42,14 @@ move_with_vector(BoidID) :-
             (AdjustedTX,AdjustedTY,AdjustedTZ))).
 
 adjust_vector_based_on_position(Pos, HalfMapSize, AdjustedPos, OriginalTranslation, AdjustedTranslation) :-
-    % adjust position and reverse the translation
+    centerattraction(C),
     (   Pos > HalfMapSize
-    ->  AdjustedPos is HalfMapSize,  % keep on the boundary
-        AdjustedTranslation is -OriginalTranslation % reverse direction
+    ->  AdjustedPos is Pos, 
+        AdjustedTranslation is OriginalTranslation - ((Pos - HalfMapSize) * C) % towards center
     ;   Pos < -HalfMapSize
-    ->  AdjustedPos is -HalfMapSize,
-        AdjustedTranslation is -OriginalTranslation
-    ;   % default
+    ->  AdjustedPos is Pos,
+        AdjustedTranslation is OriginalTranslation + ((-Pos - HalfMapSize) * C) % also center
+    ;   % its fine
         AdjustedPos is Pos,
         AdjustedTranslation is OriginalTranslation
     ).

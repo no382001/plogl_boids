@@ -63,15 +63,5 @@ debug_draw_cells :-
             glPushMatrix,
                 glTranslatef(X,Y,Z),
                 glutWireCube(W),
-            glPopMatrix    
+            glPopMatrix
         )).
-
-% create/generate boids
-% assign them to cells
-
-% it. over all BoidIDs
-% lookup cell, list all boids inside cell
-% check for all 8 set of neighbors who are in distance -> separation alignment cohesion
-
-% draw boids
-% move them like so
