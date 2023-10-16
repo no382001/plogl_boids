@@ -10,28 +10,25 @@
 :- use_module("plogl/prolog/plGLU").
 :- use_module("plogl/prolog/plGLUT").
 
-:- include("key_events.pl").
-:- include("utils.pl").
-:- include("logic.pl").
-:- include("glspecific.pl").
-
-:- dynamic camera_rotation/1,cone_velocity/1,cones/1.
-camera_rotation(0.0).
-cone_velocity(0.01).
-cones(
-    [
-        cone(p(1.0,0.0,0.0),t(0.0,0.0,0.0)),
-        cone(p(0.0,1.0,0.0),t(0.0,0.0,0.0)),
-        cone(p(0.0,0.0,1.0),t(0.0,0.0,0.0)),
-        cone(p(0.0,1.0,0.0),t(0.0,0.0,0.0)),
-        cone(p(1.0,0.0,0.0),t(0.0,0.0,0.0)),
-        cone(p(0.0,1.0,0.0),t(0.0,0.0,0.0))
-    ]
-).
-
-
+map_size(5.0).
 width(500).
 height(500). 
+
+:- dynamic camera_rotation/1,cone_velocity/1.
+camera_rotation(0.0).
+cone_velocity(0.01).
+
+:- dynamic cones/1.
+cones([]).
+
+
+generate_random_boid(cone(p(Px,Py,Pz),t(X,Y,Z))) :-
+    map_size(S),
+    HalfS is S / 2,
+    HalfSm is - HalfS,
+    random(HalfSm, HalfS, Px), random(HalfSm,HalfS, Py), random(HalfSm,HalfS, Pz),
+    random(-0.01, 0.01, X), random(-0.01, 0.01, Y), random(-0.01, 0.01, Z).
+
 
 % the camera is angled at the main cube
 camera :-
@@ -80,7 +77,7 @@ display:-
     
     cones(Cones),
     % update cone's position
-    maplist(move_towards_target,Cones,NCones),
+    maplist(move_with_vector,Cones,NCones),
     % draw all cones
     forall(member(C,NCones),draw_cone(C)),
     retract(cones(_)),
@@ -89,3 +86,87 @@ display:-
     glFlush,
 	sleep(5),
 	glutSwapBuffers.
+
+init:-
+    %defs
+    kGL_FLAT(FLAT),
+    %gl
+    glClearColor(0.0, 0.0, 0.0, 0.0),
+    glShadeModel(FLAT).
+
+reshape:-
+    % defs
+    X is 0,
+    Y is 0,
+    width(W),
+    width(H),
+    kGL_PROJECTION(PROJECTION),
+    kGL_MODELVIEW(MODELVIEW),
+    % gl
+    glViewport(X,Y,W,H),
+    glMatrixMode(PROJECTION),
+    glLoadIdentity,
+    glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 20.0),
+    glMatrixMode(MODELVIEW).
+
+idle :- display.
+
+main:-
+    % defs
+    width(W),
+    height(H),
+    kGLUT_SINGLE(SINGLE),
+    kGLUT_RGB(RGB),
+
+    length(List, 10),
+    maplist(generate_random_boid,List),
+    retract(cones(_)),
+    assertz(cones(List)),
+    
+    % gl
+    glutInit,
+    glutInitDisplayMode(SINGLE \/ RGB),
+    glutInitWindowSize(W, H),
+    glutInitWindowPosition(0,0),
+    glutCreateWindow('boids'),
+    init,
+    glutDisplayFunc,
+    glutIdleFunc(idle),
+    glutReshapeFunc,
+    glutKeyboardFunc,
+    glutMainLoop.
+
+move_with_vector(cone(p(CX,CY,CZ),t(TX, TY, TZ)),NC) :-
+    % calculate new position
+    NX is CX + TX,
+    NY is CY + TY,
+    NZ is CZ + TZ,
+
+    % get map size
+    map_size(S),
+    HalfS is S / 2,
+
+    % check if the new position is beyond half the map size and adjust vectors
+    adjust_vector_based_on_position(NX, HalfS, AdjustedNX, TX, AdjustedTX),
+    adjust_vector_based_on_position(NY, HalfS, AdjustedNY, TY, AdjustedTY),
+    adjust_vector_based_on_position(NZ, HalfS, AdjustedNZ, TZ, AdjustedTZ),
+
+    NC = cone(p(AdjustedNX,AdjustedNY,AdjustedNZ),t(AdjustedTX, AdjustedTY, AdjustedTZ)).
+
+adjust_vector_based_on_position(Pos, HalfMapSize, AdjustedPos, OriginalTranslation, AdjustedTranslation) :-
+    % adjust position and reverse the translation
+    (   Pos > HalfMapSize
+    ->  AdjustedPos is HalfMapSize,  % keep on the boundary
+        AdjustedTranslation is -OriginalTranslation % reverse direction
+    ;   Pos < -HalfMapSize
+    ->  AdjustedPos is -HalfMapSize,
+        AdjustedTranslation is -OriginalTranslation
+    ;   % default
+        AdjustedPos is Pos,
+        AdjustedTranslation is OriginalTranslation
+    ).
+
+% escape
+keyboard(27,_,_) :-
+	write('Closing Window and Exiting...'),nl,
+	glutDestroyWindow.
