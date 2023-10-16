@@ -17,13 +17,20 @@ height(500).
 % sim defs
 map_size(10.0).
 no_boids(20).
+
+% boid behav
 separation_distance(0.05).
-alignment_distance(0.05).
+avoidfactor(1.0).
+alignment_distance(0.0005).
+matchingfactor(0.0005).
+
+cohesion_distance(0.05).
+centeringfactor(1.0).
 
 % dynamic defs
 :- dynamic camera_rotation/1,cone_velocity/1,cones/1.
 camera_rotation(0.0).
-cone_velocity(0.05).
+cone_velocity(0.07).
 cones([]).
 
 
@@ -141,15 +148,19 @@ main:-
     glutMainLoop.
 
 move_with_vector(Boid,NC) :-
-    Boid = cone(p(CX,CY,CZ),t(TX, TY, TZ)),
+    Boid = cone(p(X,Y,Z),t(TX, TY, TZ)),
     cones(OtherBoids),
     calculate_separation_vector(Boid, OtherBoids, t(SX, SY, SZ)),
     calculate_alignment_vector(Boid, OtherBoids, t(AX, AY, AZ)),
-    
+    calculate_cohesion_vector(Boid, OtherBoids, t(CX, CY, CZ)),
+
+    avoidfactor(AF),
+    matchingfactor(MF),
+    centeringfactor(CF),
     % calculate new position
-    NX is (AX - CX) + (CX + TX + SX),
-    NY is (AY - CY) + (CY + TY + SY),
-    NZ is (AZ - CZ) + (CZ + TZ + SZ),
+    NX is (AX - X) * MF + X + TX + (SX * AF) + (CX - X) * CF,
+    NY is (AY - Y) * MF + Y + TY + (SY * AF) + (CY - Y) * CF,
+    NZ is (AZ - Z) * MF + Z + TZ + (SZ * AF) + (CZ - Z) * CF,
 
     map_size(S),
     HalfS is S / 2,
@@ -186,7 +197,12 @@ distance(PX, PY, PZ, OtherPX, OtherPY, OtherPZ, Distance) :-
     DZ is OtherPZ - PZ,
     Distance is sqrt(DX*DX + DY*DY + DZ*DZ).
 
+add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ)) :-
+    NewAccDX is AccDX + DX,
+    NewAccDY is AccDY + DY,
+    NewAccDZ is AccDZ + DZ.
 
+% returns a delta vector thats pointing away from all other in separation distance radius
 calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :-
     separation_distance(SeparationDistance),
     findall(
@@ -204,13 +220,26 @@ calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY,
     % sum of vecctors
     foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ)).
 
-add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ)) :-
-    NewAccDX is AccDX + DX,
-    NewAccDY is AccDY + DY,
-    NewAccDZ is AccDZ + DZ.
 
-% returns an average vector in separation distance radius
+% returns an average velvector in alignment distance radius
 calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
+    alignment_distance(ADistance),
+    findall(
+        (VX,VY,VZ),
+        (
+            member(cone(p(OPX,OPY,OPZ),t(VX,VY,VZ)), OtherBoids),
+            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
+            Distance < ADistance % if too close
+        ),
+        VectorsInRange
+    ),
+    length(VectorsInRange,N),
+    foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
+    TotalDX = DX / N,
+    TotalDY = DY / N,
+    TotalDZ = DZ / N.
+% += (xpos_avg - boid.x)*centeringfactor
+calculate_cohesion_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
     alignment_distance(ADistance),
     findall(
         (OPX, OPY, OPZ),
