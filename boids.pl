@@ -10,15 +10,15 @@
 :- use_module("plogl/prolog/plGLU").
 :- use_module("plogl/prolog/plGLUT").
 
+% static defs
 map_size(5.0).
 width(500).
 height(500). 
 
-:- dynamic camera_rotation/1,cone_velocity/1.
+% dynamic defs
+:- dynamic camera_rotation/1,cone_velocity/1,cones/1.
 camera_rotation(0.0).
 cone_velocity(0.01).
-
-:- dynamic cones/1.
 cones([]).
 
 
@@ -48,21 +48,19 @@ camera :-
 	gluLookAt(EyeX,0.0,EyeZ,0.0, 0.0, 0.0, 1.0, 1.0, 0.0).
 
 draw_cone(cone(p(PX,PY,PZ),t(TX,TY,TZ))) :-
-    % compute direction vector
-    DX is TX - PX,
-    DY is TY - PY,
-    DZ is TZ - PZ,
-
-    % compute Yaw and Pitch
-    Yaw is atan2(DX, DZ) * (180 / 3.14159),
-    Pitch is - asin(DY / sqrt(DX*DX + DY*DY + DZ*DZ)) * (180 / 3.14159),
+    DX is PX + TX,
+    DY is PY + TY,
+    DZ is PZ + TZ,
 
     glPushMatrix,
         glTranslatef(PX,PY,PZ),
-        glRotatef(Yaw, 0.0, 1.0, 0.0),   % rotate around Y-axis
-        glRotatef(Pitch, 1.0, 0.0, 0.0), % rotate around X-axis
+        gluLookAt(
+            0.0, 0.0, 0.0,  % camera at origin (0,0,0)
+            DX, DY, DZ,     % looking tw the direction vector
+            0.0, 1.0, 0.0), % up
         glutWireCone(0.5, 1.0, 5, 1),
     glPopMatrix.
+    
 
 display:-
     % defs
@@ -73,7 +71,8 @@ display:-
 	glLoadIdentity,
     camera,
     % main cube, the camera is angled at
-    glutWireCube(5.0),
+    map_size(S),
+    glutWireCube(S),
     
     cones(Cones),
     % update cone's position
