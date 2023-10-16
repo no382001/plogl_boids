@@ -11,14 +11,19 @@
 :- use_module("plogl/prolog/plGLUT").
 
 % static defs
-map_size(5.0).
 width(500).
 height(500). 
+
+% sim defs
+map_size(10.0).
+no_boids(20).
+separation_distance(0.05).
+alignment_distance(0.05).
 
 % dynamic defs
 :- dynamic camera_rotation/1,cone_velocity/1,cones/1.
 camera_rotation(0.0).
-cone_velocity(0.01).
+cone_velocity(0.05).
 cones([]).
 
 
@@ -116,12 +121,12 @@ main:-
     height(H),
     kGLUT_SINGLE(SINGLE),
     kGLUT_RGB(RGB),
-
-    length(List, 10),
+    % generate boids
+    no_boids(NOB),
+    length(List, NOB),
     maplist(generate_random_boid,List),
     retract(cones(_)),
     assertz(cones(List)),
-    
     % gl
     glutInit,
     glutInitDisplayMode(SINGLE \/ RGB),
@@ -139,11 +144,12 @@ move_with_vector(Boid,NC) :-
     Boid = cone(p(CX,CY,CZ),t(TX, TY, TZ)),
     cones(OtherBoids),
     calculate_separation_vector(Boid, OtherBoids, t(SX, SY, SZ)),
+    calculate_alignment_vector(Boid, OtherBoids, t(AX, AY, AZ)),
     
     % calculate new position
-    NX is CX + TX + SX,
-    NY is CY + TY + SY,
-    NZ is CZ + TZ + SZ,
+    NX is (AX - CX) + (CX + TX + SX),
+    NY is (AY - CY) + (CY + TY + SY),
+    NZ is (AZ - CZ) + (CZ + TZ + SZ),
 
     map_size(S),
     HalfS is S / 2,
@@ -182,7 +188,7 @@ distance(PX, PY, PZ, OtherPX, OtherPY, OtherPZ, Distance) :-
 
 
 calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :-
-    SeparationDistance = 0.05,
+    separation_distance(SeparationDistance),
     findall(
         (DX, DY, DZ),
         (
@@ -202,3 +208,21 @@ add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ))
     NewAccDX is AccDX + DX,
     NewAccDY is AccDY + DY,
     NewAccDZ is AccDZ + DZ.
+
+% returns an average vector in separation distance radius
+calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
+    alignment_distance(ADistance),
+    findall(
+        (OPX, OPY, OPZ),
+        (
+            member(cone(p(OPX,OPY,OPZ),_), OtherBoids),
+            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
+            Distance < ADistance % if too close
+        ),
+        VectorsInRange
+    ),
+    length(VectorsInRange,N),
+    foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
+    TotalDX = DX / N,
+    TotalDY = DY / N,
+    TotalDZ = DZ / N.
