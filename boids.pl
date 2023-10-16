@@ -10,15 +10,13 @@
 :- use_module("plogl/prolog/plGLU").
 :- use_module("plogl/prolog/plGLUT").
 
-:- use_module(library(thread)).
-
 % static defs
 width(500).
 height(500). 
 
 % sim defs
 map_size(10.0).
-no_boids(100).
+no_boids(20).
 
 % boid behav
 separation_distance(0.05).
@@ -152,20 +150,9 @@ main:-
 move_with_vector(Boid,NC) :-
     Boid = cone(p(X,Y,Z),t(TX, TY, TZ)),
     cones(OtherBoids),
-    
-    thread_create(calculate_separation_vector(Boid, OtherBoids), SepThread),
-    thread_create(calculate_alignment_vector(Boid, OtherBoids), AlignThread),
-    thread_create(calculate_cohesion_vector(Boid, OtherBoids), CohThread),
-
-    thread_get_message(separation_vector(SX, SY, SZ)),
-    thread_get_message(alignment_vector(AX, AY, AZ)),
-    thread_get_message(cohesion_vector(CX, CY, CZ)),
-
-    thread_join(SepThread,_),
-    thread_join(AlignThread,_),
-    thread_join(CohThread,_),
-
-    %format("~w, ~w, ~w\n",[SX, SY, SZ]),
+    calculate_separation_vector(Boid, OtherBoids, t(SX, SY, SZ)),
+    calculate_alignment_vector(Boid, OtherBoids, t(AX, AY, AZ)),
+    calculate_cohesion_vector(Boid, OtherBoids, t(CX, CY, CZ)),
 
     avoidfactor(AF),
     matchingfactor(MF),
@@ -216,8 +203,7 @@ add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ))
     NewAccDZ is AccDZ + DZ.
 
 % returns a delta vector thats pointing away from all other in separation distance radius
-calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids) :-
-    %format("~w, ~w, ~w\n",[PX, PY, PZ]),
+calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :-
     separation_distance(SeparationDistance),
     findall(
         (DX, DY, DZ),
@@ -232,12 +218,11 @@ calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids) :-
         VectorsPointingAway
     ),
     % sum of vecctors
-    foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ)),
-    thread_send_message(main, separation_vector(TotalDX, TotalDY, TotalDZ)).
+    foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ)).
 
 
 % returns an average velvector in alignment distance radius
-calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids) :- 
+calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
     alignment_distance(ADistance),
     findall(
         (VX,VY,VZ),
@@ -252,10 +237,9 @@ calculate_alignment_vector(cone(p(PX,PY,PZ),_), OtherBoids) :-
     foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
     TotalDX = DX / N,
     TotalDY = DY / N,
-    TotalDZ = DZ / N,
-    thread_send_message(main, alignment_vector(TotalDX, TotalDY, TotalDZ)).
+    TotalDZ = DZ / N.
 % += (xpos_avg - boid.x)*centeringfactor
-calculate_cohesion_vector(cone(p(PX,PY,PZ),_), OtherBoids) :- 
+calculate_cohesion_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :- 
     alignment_distance(ADistance),
     findall(
         (OPX, OPY, OPZ),
@@ -270,5 +254,4 @@ calculate_cohesion_vector(cone(p(PX,PY,PZ),_), OtherBoids) :-
     foldl(add_vectors, VectorsInRange, (0, 0, 0), (DX,DY,DZ)),
     TotalDX = DX / N,
     TotalDY = DY / N,
-    TotalDZ = DZ / N,
-    thread_send_message(main, cohesion_vector(TotalDX, TotalDY, TotalDZ)).
+    TotalDZ = DZ / N.
