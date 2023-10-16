@@ -135,13 +135,16 @@ main:-
     glutKeyboardFunc,
     glutMainLoop.
 
-move_with_vector(cone(p(CX,CY,CZ),t(TX, TY, TZ)),NC) :-
+move_with_vector(Boid,NC) :-
+    Boid = cone(p(CX,CY,CZ),t(TX, TY, TZ)),
+    cones(OtherBoids),
+    calculate_separation_vector(Boid, OtherBoids, t(SX, SY, SZ)),
+    
     % calculate new position
-    NX is CX + TX,
-    NY is CY + TY,
-    NZ is CZ + TZ,
+    NX is CX + TX + SX,
+    NY is CY + TY + SY,
+    NZ is CZ + TZ + SZ,
 
-    % get map size
     map_size(S),
     HalfS is S / 2,
 
@@ -169,3 +172,33 @@ adjust_vector_based_on_position(Pos, HalfMapSize, AdjustedPos, OriginalTranslati
 keyboard(27,_,_) :-
 	write('Closing Window and Exiting...'),nl,
 	glutDestroyWindow.
+
+
+distance(PX, PY, PZ, OtherPX, OtherPY, OtherPZ, Distance) :-
+    DX is OtherPX - PX,
+    DY is OtherPY - PY,
+    DZ is OtherPZ - PZ,
+    Distance is sqrt(DX*DX + DY*DY + DZ*DZ).
+
+
+calculate_separation_vector(cone(p(PX,PY,PZ),_), OtherBoids, t(TotalDX, TotalDY, TotalDZ)) :-
+    SeparationDistance = 0.05,
+    findall(
+        (DX, DY, DZ),
+        (
+            member(cone(p(OPX,OPY,OPZ),_), OtherBoids),
+            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
+            Distance < SeparationDistance, % if too close
+            DX is PX - OPX,
+            DY is PY - OPY,
+            DZ is PZ - OPZ
+        ),
+        VectorsPointingAway
+    ),
+    % sum of vecctors
+    foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ)).
+
+add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ)) :-
+    NewAccDX is AccDX + DX,
+    NewAccDY is AccDY + DY,
+    NewAccDZ is AccDZ + DZ.
