@@ -20,7 +20,7 @@ width(500).
 height(500). 
 
 % sim defs
-no_boids(50).
+no_boids(10).
 
 % boid behav
 separation_distance(0.05).
@@ -65,7 +65,6 @@ draw_cone((PX,PY,PZ),(TX,TY,TZ)) :-
             0.0, 1.0, 0.0), % up
         glutWireCone(0.5, 1.0, 5, 1),
     glPopMatrix.
-    %debug_draw_cells.
     
 
 display:-
@@ -84,10 +83,11 @@ display:-
     forall(
         boid(I,_,_),
         move_with_vector(I)),
-    
     forall(
         boid(ID,Pos,Vec),
-        draw_cone(Pos,Vec)),
+        ( 
+            debug_draw_cells(ID),
+            draw_cone(Pos,Vec) )),
     
     glFlush,
 	sleep(5),

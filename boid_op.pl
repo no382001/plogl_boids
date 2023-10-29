@@ -39,7 +39,9 @@ move_with_vector(BoidID) :-
         boid(
             BoidID,
             (AdjustedNX,AdjustedNY,AdjustedNZ),
-            (AdjustedTX,AdjustedTY,AdjustedTZ))).
+            (AdjustedTX,AdjustedTY,AdjustedTZ))),
+    retract(boid_cell(BoidID, _)),    
+    assign_boid_to_cell(BoidID).
 
 adjust_vector_based_on_position(Pos, HalfMapSize, AdjustedPos, OriginalTranslation, AdjustedTranslation) :-
     centerattraction(C),

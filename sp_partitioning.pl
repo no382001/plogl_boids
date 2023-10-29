@@ -33,14 +33,26 @@ initialize_cells :-
         )
     ).
 
-find_cell_for_position(X, Y, Z, CellID) :-
-    cell(CellID, CenterX, CenterY, CenterZ, Width, Height, Depth),
-    X >= CenterX - Width / 2,
-    X < CenterX + Width / 2,
-    Y >= CenterY - Height / 2,
-    Y < CenterY + Height / 2,
-    Z >= CenterZ - Depth / 2,
-    Z < CenterZ + Depth / 2.
+
+squared_distance(X1, Y1, Z1, X2, Y2, Z2, Distance) :-
+    Dx is X2 - X1,
+    Dy is Y2 - Y1,
+    Dz is Z2 - Z1,
+    Distance is Dx * Dx + Dy * Dy + Dz * Dz.
+
+
+find_cell_for_position(X, Y, Z, ClosestCellID) :-
+    % this is very inefficient
+    findall(
+        Dist-CellID,
+        (cell(CellID, CenterX, CenterY, CenterZ, _, _, _),
+         squared_distance(X, Y, Z, CenterX, CenterY, CenterZ, Dist)),
+        Pairs
+    ),
+    % wtf? select the cell with the minimum distance
+    keysort(Pairs, Sorted),
+    Sorted = [MinDist-ClosestCellID|_].
+    
 
 assign_boid_to_cell(BoidID) :-
     boid(BoidID, (X, Y, Z), _),
@@ -56,12 +68,15 @@ handle_boid_movement(BoidID, NewX, NewY, NewZ) :-
     assign_boid_to_cell(BoidID).
 
 
-debug_draw_cells :-
-    forall(
-        cell(I,X,Y,Z,W,_,_),
-        (
-            glPushMatrix,
-                glTranslatef(X,Y,Z),
-                glutWireCube(W),
-            glPopMatrix
-        )).
+debug_draw_cells(Id) :-
+    boid_cell(Id,Cell),
+    cell(Cell,X,Y,Z,W,_,_),
+
+    glColor3f(0.0, 0.8, 0.0),
+
+    glPushMatrix,
+        glTranslatef(X,Y,Z),
+        glutWireCube(W),
+    glPopMatrix,
+
+    glColor3f(1.0, 1.0, 1.0).
