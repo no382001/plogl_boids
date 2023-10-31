@@ -16,27 +16,33 @@
 :- include("sp_partitioning.pl").
 
 % static defs
-width(500).
-height(500). 
+width(1000).
+height(1000). 
 
 % sim defs
 no_boids(10).
+map_size(5.0).
+num_divisions(5.0).
 
 % boid behav
-separation_distance(0.05).
-avoidfactor(0.0005).
-alignment_distance(0.0005).
+separation_distance(0.97).
+avoidfactor(0.005).
+
+alignment_distance(0.97).
 matchingfactor(0.0005).
-cohesion_distance(0.05).
-centeringfactor(-0.0003).
+
+cohesion_distance(0.47).
+centeringfactor(0.0003).
 
 centerattraction(0.0001).
 
+cone_velocity(1.5).
+
 % dynamic defs
-:- dynamic camera_rotation/2,cone_velocity/1,zoom/1.
+:- dynamic camera_rotation/2,zoom/1.
 camera_rotation(0.0,0.0).
 zoom(0.0).
-cone_velocity(0.07).
+
 
 % the camera is angled at the main cube
 camera :-
@@ -53,15 +59,15 @@ camera :-
 
 % draw cone looking in the direction it is going
 draw_cone((PX,PY,PZ),(TX,TY,TZ)) :-
-    DX is PX + TX,
-    DY is PY + TY,
-    DZ is PZ + TZ,
+    %DX is (PX + TX),
+    %DY is (PY + TY),
+    %DZ is (PZ + TZ),
 
     glPushMatrix,
         glTranslatef(PX,PY,PZ),
         gluLookAt(
             0.0, 0.0, 0.0,  % camera at origin (0,0,0)
-            DX, DY, DZ,     % looking tw the direction vector
+            TX, TY, TZ,     % looking tw the direction vector
             0.0, 1.0, 0.0), % up
         glutWireCone(0.5, 1.0, 5, 1),
     glPopMatrix.
@@ -86,7 +92,7 @@ display:-
     forall(
         boid(ID,Pos,Vec),
         ( 
-            debug_draw_cells(ID),
+            %debug_draw_cells(ID),
             draw_cone(Pos,Vec) )),
     
     glFlush,
@@ -148,3 +154,31 @@ setup :-
     initialize_cells,
     no_boids(NOB),
     repeat(generate_random_boid,NOB).
+
+simulate_step :- 
+    forall(
+        boid(I,_,_),
+        move_with_vector(I)).
+
+simulate_steps :- 
+    Step is 10,
+    repeat(simulate_step,Step).
+
+
+boid_count(Cell, Count) :-
+    findall(B, boid_cell(B, Cell), Boids),
+    length(Boids, Count).
+
+cell_with_most_boids([Cell|Rest], MaxCell) :-
+    cell_with_most_boids(Rest, Cell, MaxCell).
+
+cell_with_most_boids([], CurrentMax, CurrentMax).
+cell_with_most_boids([Cell|Rest], CurrentMax, MaxCell) :-
+    boid_count(Cell, Count),
+    boid_count(CurrentMax, CurrentCount),
+    (   Count > CurrentCount
+    ->  NewMax = Cell 
+    ;   NewMax = CurrentMax
+    ),
+    cell_with_most_boids(Rest, NewMax, MaxCell).
+
