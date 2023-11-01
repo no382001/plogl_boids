@@ -9,6 +9,7 @@ calculate_separation_vector(BoidID, (TotalDX, TotalDY, TotalDZ)) :-
         (DX, DY, DZ),
         (
             boid_cell(M,CellID), % for all boids in cell
+            BoidID \= M, % dont compare to the same
             M = boid(_,(OPX,OPY,OPZ),_),
             distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
             Distance < SeparationDistance, % if too close
@@ -31,6 +32,7 @@ calculate_alignment_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :-
         (VX,VY,VZ),
         (
             boid_cell(M,CellID), % for all boids in cell
+            BoidID \= M,
             M = boid(_,(OPX,OPY,OPZ),_),
             distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
             Distance < ADistance % if too close
@@ -50,16 +52,17 @@ calculate_alignment_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :-
 
 % += (xpos_avg - boid.x)*centeringfactor
 calculate_cohesion_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :- 
-    alignment_distance(ADistance),
+    cohesion_distance_distance(CDistance),
     boid_cell(BoidID,CellID),
     boid(BoidID,(PX, PY, PZ),_),
     findall(
         (OPX, OPY, OPZ),
         (
             boid_cell(M,CellID), % for all boids in cell
+            BoidID \= M,
             M = boid(_,(OPX,OPY,OPZ),_),
             distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
-            Distance < ADistance % if too close
+            Distance < CDistance % if too close
         ),
         VectorsInRange
     ),

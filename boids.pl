@@ -25,8 +25,10 @@ no_boids(10).
 % boid behav
 separation_distance(0.05).
 avoidfactor(0.0005).
-alignment_distance(0.0005).
+
+alignment_distance(0.05).
 matchingfactor(0.0005).
+
 cohesion_distance(0.05).
 centeringfactor(-0.0003).
 
@@ -148,3 +150,11 @@ setup :-
     initialize_cells,
     no_boids(NOB),
     repeat(generate_random_boid,NOB).
+
+simulate_step :-
+    forall(
+        boid(I,_,_),
+        move_with_vector(I)).
+
+simulate_steps :- 
+    repeat(simulate_step,10).
