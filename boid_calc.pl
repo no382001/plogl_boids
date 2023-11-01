@@ -52,7 +52,7 @@ calculate_alignment_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :-
 
 % += (xpos_avg - boid.x)*centeringfactor
 calculate_cohesion_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :- 
-    cohesion_distance_distance(CDistance),
+    cohesion_distance(CDistance),
     boid_cell(BoidID,CellID),
     boid(BoidID,(PX, PY, PZ),_),
     findall(

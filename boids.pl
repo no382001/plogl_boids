@@ -158,3 +158,24 @@ simulate_step :-
 
 simulate_steps :- 
     repeat(simulate_step,10).
+
+
+boid_count(Cell, Count) :-
+    findall(B, boid_cell(B, Cell), Boids),
+    length(Boids, Count).
+
+cell_with_most_boids([Cell|Rest], MaxCell) :-
+    cell_with_most_boids(Rest, Cell, MaxCell).
+
+cell_with_most_boids([], CurrentMax, CurrentMax).
+cell_with_most_boids([Cell|Rest], CurrentMax, MaxCell) :-
+    boid_count(Cell, Count),
+    boid_count(CurrentMax, CurrentCount),
+    (   Count > CurrentCount
+    ->  NewMax = Cell 
+    ;   NewMax = CurrentMax
+    ),
+    cell_with_most_boids(Rest, NewMax, MaxCell).
+
+
+
