@@ -20,6 +20,7 @@ initialize_cells :-
     HalfMapSize is MapSize / 2,
     Between is -HalfMapSize,
     ForLimit is HalfMapSize - CellSize,
+    !,
     forall(float_between(Between,ForLimit,CellSize,X),
         forall(float_between(Between,ForLimit,CellSize,Y),
             forall(float_between(Between,ForLimit,CellSize,Z),
@@ -33,25 +34,23 @@ initialize_cells :-
         )
     ).
 
-
-squared_distance(X1, Y1, Z1, X2, Y2, Z2, Distance) :-
-    Dx is X2 - X1,
-    Dy is Y2 - Y1,
-    Dz is Z2 - Z1,
-    Distance is Dx * Dx + Dy * Dy + Dz * Dz.
-
-
+% this saves 1400 redos w/ 100 boids compared to the prev solution
 find_cell_for_position(X, Y, Z, ClosestCellID) :-
-    % this is very inefficient
-    findall(
-        Dist-CellID,
-        (cell(CellID, CenterX, CenterY, CenterZ, _, _, _),
-         squared_distance(X, Y, Z, CenterX, CenterY, CenterZ, Dist)),
-        Pairs
+    find_closest_cell(X, Y, Z, ClosestCellID, inf, _).
+
+find_closest_cell(X, Y, Z, ClosestCellID, ClosestDist, FinalClosestDist) :-
+    cell(CellID, CenterX, CenterY, CenterZ, _, _, _),
+    distance(X, Y, Z, CenterX, CenterY, CenterZ, Dist),
+    (Dist < ClosestDist
+    ->
+        NewClosestDist = Dist,
+        NewClosestCellID = CellID
+    ; 
+        NewClosestDist = ClosestDist,
+        NewClosestCellID = ClosestCellID
     ),
-    % wtf? select the cell with the minimum distance
-    keysort(Pairs, Sorted),
-    Sorted = [MinDist-ClosestCellID|_].
+    fail; % forces backtracking to check all cells
+    (ClosestCellID = NewClosestCellID, FinalClosestDist = NewClosestDist).
     
 
 assign_boid_to_cell(BoidID) :-

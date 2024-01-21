@@ -126,7 +126,8 @@ idle :- display.
 repeat(_,0) :- !.
 repeat(P,N) :- 
     P, N1 is N - 1,
-    repeat(P,N1), !.
+    !,
+    repeat(P,N1).
 
 main:-
     % defs
