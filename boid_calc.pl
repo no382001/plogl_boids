@@ -7,7 +7,8 @@ calculate_separation_vector(BoidID, (TotalDX, TotalDY, TotalDZ)) :-
     boid(BoidID,(PX, PY, PZ),_),
     findall(
         (DX, DY, DZ),
-        (   boid_cell(M,CellID), % for all boids in cell
+        (
+            boid_cell(M,CellID), % for all boids in cell
             M = boid(_,(OPX,OPY,OPZ),_),
             distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
             Distance < SeparationDistance, % if too close

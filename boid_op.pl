@@ -61,7 +61,7 @@ distance(PX, PY, PZ, OtherPX, OtherPY, OtherPZ, Distance) :-
     DX is OtherPX - PX,
     DY is OtherPY - PY,
     DZ is OtherPZ - PZ,
-    Distance is sqrt(DX**2 + DY**2 + DZ**2).
+    Distance is sqrt(DX*DX + DY*DY + DZ*DZ).
 
 add_vectors((DX, DY, DZ), (AccDX, AccDY, AccDZ), (NewAccDX, NewAccDY, NewAccDZ)) :-
     NewAccDX is AccDX + DX,
