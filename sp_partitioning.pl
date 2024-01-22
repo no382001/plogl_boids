@@ -25,9 +25,10 @@ initialize_cells :-
         forall(float_between(Between,ForLimit,CellSize,Y),
             forall(float_between(Between,ForLimit,CellSize,Z),
                 (   atomic_list_concat(['cell', X, Y, Z], '_', CellID), % unique id
-                    CenterX is X + CellSize / 2,
+                    CenterX is X + CellSize / 2, 
                     CenterY is Y + CellSize / 2,
                     CenterZ is Z + CellSize / 2,
+                    %format("xyz ~w\n",[CenterX - CenterY - CenterZ-  X - Y - Z]),
                     assertz(cell(CellID, CenterX, CenterY, CenterZ, CellSize, CellSize, CellSize))
                 )
             )
@@ -42,17 +43,35 @@ squared_distance(X1, Y1, Z1, X2, Y2, Z2, Distance) :-
     Distance is Dx * Dx + Dy * Dy + Dz * Dz.
 
 
+debug_draw_closest_cells(X-Y-Z, Src) :-
+    findall(Dist-CellId, (
+        nth1(I,Src,Dist-CellId),
+        I =< 5,
+        cell(CellId,PX,PY,PZ,_,_,_),
+        glPushMatrix,
+            kGL_LINES(LINES),
+            glBegin(LINES),
+                glVertex3f(X, Y, Z),
+                glVertex3f(PX, PY, PZ),
+            glEnd,
+        glPopMatrix
+        ), _).
+
+% this seems to work well, afterall
 find_cell_for_position(X, Y, Z, ClosestCellID) :-
     % this is very inefficient
     findall(
         Dist-CellID,
         (cell(CellID, CenterX, CenterY, CenterZ, _, _, _),
-         squared_distance(X, Y, Z, CenterX, CenterY, CenterZ, Dist)),
+        squared_distance(X, Y, Z, CenterX, CenterY, CenterZ, Dist)
+        ),
         Pairs
     ),
     % wtf? select the cell with the minimum distance
     keysort(Pairs, Sorted),
-    Sorted = [MinDist-ClosestCellID|_].
+
+    Sorted = [MinDist-ClosestCellID|_],
+    debug_draw_closest_cells(X-Y-Z,Sorted).
     
 
 assign_boid_to_cell(BoidID) :-

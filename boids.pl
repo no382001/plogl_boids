@@ -20,7 +20,7 @@ width(1000).
 height(1000). 
 
 % sim defs
-no_boids(10).
+no_boids(2).
 map_size(5.0).
 num_divisions(5.0).
 
@@ -85,6 +85,7 @@ display:-
     map_size(S),
     glutWireCube(S),
     
+    /**/
     % update cone's position, and draw
     forall(
         boid(I,_,_),
@@ -92,9 +93,11 @@ display:-
     forall(
         boid(ID,Pos,Vec),
         ( 
-            %debug_draw_cells(ID),
+            debug_draw_cells(ID),
             draw_cone(Pos,Vec) )),
-    
+    /**/
+            
+
     glFlush,
 	sleep(5),
 	glutSwapBuffers.
@@ -183,3 +186,4 @@ cell_with_most_boids([Cell|Rest], CurrentMax, MaxCell) :-
     ),
     cell_with_most_boids(Rest, NewMax, MaxCell).
 
+% -------------------------------------
