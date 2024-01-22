@@ -70,8 +70,8 @@ find_cell_for_position(X, Y, Z, ClosestCellID) :-
     % wtf? select the cell with the minimum distance
     keysort(Pairs, Sorted),
 
-    Sorted = [MinDist-ClosestCellID|_],
-    debug_draw_closest_cells(X-Y-Z,Sorted).
+    Sorted = [MinDist-ClosestCellID|_].%,
+    %debug_draw_closest_cells(X-Y-Z,Sorted).
     
 
 assign_boid_to_cell(BoidID) :-

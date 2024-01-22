@@ -1,26 +1,46 @@
 % boid_calc,pl
 
-% returns a delta vector thats pointing away from all other in separation distance radius
+% returns a delta vector thats pointing away from all other in same cell
 calculate_separation_vector(BoidID, (TotalDX, TotalDY, TotalDZ)) :-
-    separation_distance(SeparationDistance),
+    %separation_distance(SeparationDistance),
     boid_cell(BoidID,CellID),
     boid(BoidID,(PX, PY, PZ),_),
     findall(
         (DX, DY, DZ),
         (
-            boid_cell(M,CellID), % for all boids in cell
-            M = boid(_,(OPX,OPY,OPZ),_),
-            distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
-            Distance < SeparationDistance, % if too close
+            boid_cell(M,CellID),
+            boid(M,(OPX,OPY,OPZ),_),
+            BoidID \= M,
+
+            % w. sp partitioning i dont think it makes sense to use separation distance at all
+            % just adjust avoid factor
+            
+            %distance(PX, PY, PZ, OPX, OPY, OPZ, Distance),
             DX is PX - OPX,
             DY is PY - OPY,
-            DZ is PZ - OPZ
+            DZ is PZ - OPZ,
+            
+            % connect same cell boids, w/ red
+            glColor3f(1.0, 0.0, 0.0),
+            kGL_LINES(LINES),
+            glPushMatrix,
+                glBegin(LINES),
+                    glVertex3f(PX, PY, PZ),
+                    glVertex3f(OPX, OPY, OPZ),
+                glEnd,
+            glPopMatrix,
+            glColor3f(1.0, 1.0, 1.0)
         ),
         VectorsPointingAway
     ),
-    % sum of vecctors
-    foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ)).
-
+    length(VectorsPointingAway,N),
+    (N = 0 -> 
+        TotalDX is 0,
+        TotalDY is 0,
+        TotalDZ is 0
+    ;
+        foldl(add_vectors, VectorsPointingAway, (0, 0, 0), (TotalDX, TotalDY, TotalDZ))
+    ).
 
 % returns an average velvector in alignment distance radius
 calculate_alignment_vector(BoidID,(TotalDX, TotalDY, TotalDZ)) :- 

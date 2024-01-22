@@ -20,12 +20,12 @@ width(1000).
 height(1000). 
 
 % sim defs
-no_boids(2).
+no_boids(10).
 map_size(5.0).
 num_divisions(5.0).
 
 % boid behav
-separation_distance(0.97).
+separation_distance(1.97).
 avoidfactor(0.005).
 
 alignment_distance(0.97).
