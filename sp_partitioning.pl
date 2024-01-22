@@ -20,6 +20,7 @@ initialize_cells :-
     HalfMapSize is MapSize / 2,
     Between is -HalfMapSize,
     ForLimit is HalfMapSize - CellSize,
+    !,
     forall(float_between(Between,ForLimit,CellSize,X),
         forall(float_between(Between,ForLimit,CellSize,Y),
             forall(float_between(Between,ForLimit,CellSize,Z),
